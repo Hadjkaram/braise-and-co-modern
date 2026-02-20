@@ -30,6 +30,8 @@ export default function Navbar() {
           <Link href="/experience" className="hover:text-orange-600 transition-colors">L'Expérience</Link>
           <Link href="/carte" className="hover:text-orange-600 transition-colors">La Carte</Link>
           <Link href="/reservation" className="hover:text-orange-600 transition-colors">Réservation</Link>
+          {/* NOUVEAU LIEN FIDÉLITÉ (DESKTOP) */}
+          <Link href="/fidelite" className="hover:text-orange-600 transition-colors">Fidélité</Link>
           <Link href="/contact" className="hover:text-orange-600 transition-colors">Contact</Link>
         </div>
 
@@ -63,6 +65,8 @@ export default function Navbar() {
             <Link href="/experience" onClick={() => setIsOpen(false)} className="text-4xl font-black uppercase tracking-tighter hover:text-orange-600 transition-colors">L'Expérience</Link>
             <Link href="/carte" onClick={() => setIsOpen(false)} className="text-4xl font-black uppercase tracking-tighter hover:text-orange-600 transition-colors">La Carte</Link>
             <Link href="/reservation" onClick={() => setIsOpen(false)} className="text-4xl font-black uppercase tracking-tighter hover:text-orange-600 transition-colors">Réservation</Link>
+            {/* NOUVEAU LIEN FIDÉLITÉ (MOBILE) */}
+            <Link href="/fidelite" onClick={() => setIsOpen(false)} className="text-4xl font-black uppercase tracking-tighter hover:text-orange-600 transition-colors">Fidélité</Link>
             <Link href="/contact" onClick={() => setIsOpen(false)} className="text-4xl font-black uppercase tracking-tighter hover:text-orange-600 transition-colors">Contact</Link>
             
             <Link 
