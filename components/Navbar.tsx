@@ -1,12 +1,14 @@
 "use client";
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+// 1. On importe "Variants" depuis framer-motion
+import { motion, AnimatePresence, Variants } from "framer-motion";
 import Link from "next/link";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
 
-  const menuVariants = {
+  // 2. On indique à TypeScript que c'est un objet Variants
+  const menuVariants: Variants = {
     closed: { x: "100%", transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
     opened: { x: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } }
   };
