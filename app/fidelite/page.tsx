@@ -61,11 +61,13 @@ export default function FidelitePage() {
         {/* LA CARTE DE FIDÉLITÉ 3D */}
         <div className="flex-1 flex justify-center z-10 w-full perspective-[1000px]">
           <motion.div
-            style={{ rotateX, rotateY }}
             onMouseMove={handleMouse}
             onMouseLeave={handleMouseLeave}
             className="relative w-full max-w-[400px] aspect-[1.6/1] rounded-3xl p-8 cursor-pointer shadow-2xl transition-shadow duration-300 hover:shadow-orange-600/20"
+            // LA CORRECTION EST ICI : un seul attribut style fusionné
             style={{
+              rotateX, 
+              rotateY,
               background: "linear-gradient(135deg, #1a1a1a 0%, #000000 100%)",
               boxShadow: "0 25px 50px -12px rgba(234, 88, 12, 0.25)",
               border: "1px solid rgba(255, 255, 255, 0.1)",
