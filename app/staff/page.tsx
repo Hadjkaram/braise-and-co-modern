@@ -3,17 +3,24 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
+import dynamic from "next/dynamic";
+
+// IMPORT DYNAMIQUE : Empêche Vercel de planter lors du déploiement (car le serveur Vercel n'a pas de caméra)
+const QrScanner = dynamic(() => import('@yudiel/react-qr-scanner').then((mod) => mod.Scanner), { ssr: false });
 
 export default function StaffPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pinCode, setPinCode] = useState("");
   
   const [clientId, setClientId] = useState("");
-  const [scannedClient, setScannedClient] = useState<any>(null); // Stocke le client trouvé
+  const [scannedClient, setScannedClient] = useState<any>(null);
   const [additionAmount, setAdditionAmount] = useState("");
   
   const [statusMessage, setStatusMessage] = useState("");
-  const [rewardAlert, setRewardAlert] = useState(false); // Gère l'alerte des 1000 points
+  const [rewardAlert, setRewardAlert] = useState(false);
+  
+  // Nouvel état pour gérer l'affichage de la caméra
+  const [showScanner, setShowScanner] = useState(false);
 
   // 1. Connexion du serveur
   const handleLogin = (e: React.FormEvent) => {
@@ -22,17 +29,32 @@ export default function StaffPage() {
     else { setStatusMessage("Code PIN incorrect"); setTimeout(() => setStatusMessage(""), 2000); }
   };
 
-  // 2. Recherche du client via l'ID scanné
-  const handleSearchClient = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // 2. Recherche du client (Manuelle ou via Scan)
+  const handleSearchClient = async (e?: React.FormEvent, idToSearch?: string) => {
+    if (e) e.preventDefault();
+    const finalId = idToSearch || clientId;
+    
+    if (!finalId) return;
+
     setStatusMessage("Recherche en cours...");
-    const { data: client, error } = await supabase.from('clients').select('*').eq('id', clientId).single();
+    const { data: client, error } = await supabase.from('clients').select('*').eq('id', finalId).single();
     
     if (client) {
       setScannedClient(client);
+      setClientId(client.id);
       setStatusMessage("");
     } else {
       setStatusMessage("Code QR Invalide ou Client introuvable.");
+    }
+  };
+
+  // Fonction déclenchée automatiquement quand la caméra détecte un QR Code
+  const handleScan = (detectedCodes: any[]) => {
+    if (detectedCodes && detectedCodes.length > 0) {
+      const id = detectedCodes[0].rawValue;
+      setClientId(id);           // Remplit le champ texte avec l'ID
+      setShowScanner(false);     // Coupe la caméra
+      handleSearchClient(undefined, id); // Lance la recherche automatiquement !
     }
   };
 
@@ -48,7 +70,6 @@ export default function StaffPage() {
       setStatusMessage("Erreur réseau.");
     } else {
       if (nouveauxPoints >= scannedClient.max_points) {
-        // ALERTE RÉCOMPENSE !
         setRewardAlert(true);
       } else {
         setStatusMessage(`Succès : ${pointsGagnes} °C ajoutés !`);
@@ -63,6 +84,7 @@ export default function StaffPage() {
     setAdditionAmount("");
     setRewardAlert(false);
     setStatusMessage("");
+    setShowScanner(false);
   };
 
   return (
@@ -84,7 +106,6 @@ export default function StaffPage() {
           /* === ÉCRAN 2 : TERMINAL STAFF === */
           <motion.div key="dashboard" initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-lg bg-zinc-900 p-8 rounded-3xl border border-white/10 relative overflow-hidden">
             
-            {/* Si une récompense est atteinte, l'écran devient ROUGE FEU */}
             {rewardAlert && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-orange-600 z-50 flex flex-col items-center justify-center p-8 text-center">
                 <h2 className="text-5xl font-black uppercase mb-4 text-white">🔥 PALIER <br/> ATTEINT !</h2>
@@ -102,12 +123,37 @@ export default function StaffPage() {
 
             {/* Étape A : Scanner le client */}
             {!scannedClient ? (
-              <form onSubmit={handleSearchClient} className="space-y-4">
-                <label className="text-xs uppercase tracking-widest text-zinc-500 block">Scanner ou coller l'ID du Client</label>
-                <input type="text" placeholder="ID de la carte..." value={clientId} onChange={(e) => setClientId(e.target.value)} className="w-full bg-black border border-white/20 py-4 px-6 rounded-xl outline-none focus:border-orange-600" required />
-                <button className="w-full py-4 bg-white text-black font-black uppercase tracking-widest rounded-xl hover:bg-orange-600 hover:text-white transition-all">Rechercher</button>
-                {statusMessage && <p className="text-red-500 text-center mt-2 text-xs font-bold uppercase">{statusMessage}</p>}
-              </form>
+              <div className="space-y-6">
+                
+                {/* LA ZONE DE LA CAMÉRA */}
+                {showScanner ? (
+                  <div className="relative rounded-2xl overflow-hidden border-2 border-orange-600 aspect-square">
+                    <QrScanner onScan={handleScan} onError={(e) => console.log("Erreur Scan:", e)} />
+                    <button onClick={() => setShowScanner(false)} className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-red-600 text-white px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest shadow-xl">
+                      Fermer la caméra
+                    </button>
+                    <div className="absolute inset-0 pointer-events-none border-[40px] border-black/50" />
+                    <p className="absolute top-4 left-0 w-full text-center text-white text-xs font-bold tracking-widest bg-black/50 py-2">Pointez le QR Code</p>
+                  </div>
+                ) : (
+                  <button onClick={() => setShowScanner(true)} className="w-full py-6 bg-zinc-800 border border-white/10 text-white font-black uppercase tracking-widest rounded-xl hover:bg-orange-600 hover:border-orange-600 transition-all flex flex-col items-center justify-center gap-3">
+                    <span className="text-3xl">📷</span>
+                    Ouvrir le Scanner
+                  </button>
+                )}
+
+                <div className="relative flex items-center py-4">
+                  <div className="flex-grow border-t border-white/10"></div>
+                  <span className="flex-shrink-0 mx-4 text-zinc-600 text-xs font-bold uppercase tracking-widest">ou saisie manuelle</span>
+                  <div className="flex-grow border-t border-white/10"></div>
+                </div>
+
+                <form onSubmit={(e) => handleSearchClient(e)} className="space-y-4">
+                  <input type="text" placeholder="Coller l'ID du Client..." value={clientId} onChange={(e) => setClientId(e.target.value)} className="w-full bg-black border border-white/20 py-4 px-6 rounded-xl outline-none focus:border-orange-600" />
+                  <button className="w-full py-4 bg-white text-black font-black uppercase tracking-widest rounded-xl hover:bg-orange-600 hover:text-white transition-all">Rechercher</button>
+                  {statusMessage && <p className="text-red-500 text-center mt-2 text-xs font-bold uppercase">{statusMessage}</p>}
+                </form>
+              </div>
             ) : (
               
               /* Étape B : Client trouvé -> Ajouter les points */
